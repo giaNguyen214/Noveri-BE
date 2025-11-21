@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from minio import Minio
-import time
 
 load_dotenv()
 

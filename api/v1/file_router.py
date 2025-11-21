@@ -16,6 +16,10 @@ def download(bucket: str, file_name: str):
         media_type=mimetypes.guess_type(file_name)[0] or "application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename={file_name}"}
     )
+    
+@router.get("/metadata/{bucket}/{etag}")
+def detail_metadata(bucket: str, etag: str):
+    return MinioService.list_detail_metadata(bucket, etag)    
 
 @router.get("/metadata/{bucket}")
 def metadata(bucket: str):

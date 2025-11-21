@@ -31,6 +31,29 @@ class MinioService:
             return minio_client.get_object(bucket, file_name)
         except S3Error:
             raise HTTPException(status_code=404, detail="File not found.")
+        
+    @staticmethod
+    def list_detail_metadata(bucket: str, etag: str):
+         try:
+            if bucket not in settings.MINIO_BUCKETS:
+                 raise HTTPException(status_code=400, detail="Invalid bucket name.")
+            elif not etag in [obj.etag for obj in minio_client.list_objects(bucket)]:
+                 raise HTTPException(status_code=404, detail="File not found.") 
+            metadata = None
+            for obj in minio_client.list_objects(bucket):
+                if obj.etag == etag:
+                    metadata = minio_client.stat_object(bucket, obj.object_name)
+                    file_name = obj.object_name
+                    
+                     # ---- PREVIEW URL: Dùng API download, không dùng presigned URL ----
+                    obj_name_url_encoded = quote(obj.object_name, safe="")
+                    preview_url = (
+                        f"{settings.API_BASE_URL}/files/download/{bucket}/{obj_name_url_encoded}"
+                    )
+                    break
+            return {"file_name": file_name, "size": metadata.size, "last_modified": metadata.last_modified, "preview_url": preview_url, "etag": metadata.etag}
+         except S3Error:
+            raise HTTPException(status_code=404, detail="File not found.")
 
     @staticmethod
     def list_metadata(bucket: str):
