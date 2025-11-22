@@ -5,12 +5,12 @@ import mimetypes
 router = APIRouter(prefix="/files", tags=["Files"])
 
 @router.post("/upload/{bucket}")
-def upload(bucket: str, file: UploadFile = File(...)):
-    return MinioService.upload_file(bucket, file)
+def upload(bucket: str, file: UploadFile = File(...), user_id: str = None):
+    return MinioService.upload_file(bucket, file, user_id)
 
 @router.get("/download/{bucket}/{file_name}")
-def download(bucket: str, file_name: str):
-    data = MinioService.download_file(bucket, file_name)
+def download(bucket: str, file_name: str, user_id: str = None):
+    data = MinioService.download_file(bucket, file_name, user_id)
     return StreamingResponse(
         data,
         media_type=mimetypes.guess_type(file_name)[0] or "application/octet-stream",
@@ -18,9 +18,9 @@ def download(bucket: str, file_name: str):
     )
     
 @router.get("/metadata/{bucket}/{etag}")
-def detail_metadata(bucket: str, etag: str):
-    return MinioService.list_detail_metadata(bucket, etag)    
+def detail_metadata(bucket: str, etag: str, user_id: str = None):
+    return MinioService.list_detail_metadata(bucket, etag, user_id)    
 
 @router.get("/metadata/{bucket}")
-def metadata(bucket: str):
-    return MinioService.list_metadata(bucket)
+def metadata(bucket: str, user_id: str = None):
+    return MinioService.list_metadata(bucket, user_id)
