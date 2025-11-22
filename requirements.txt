@@ -1,3 +1,4 @@
+--only-binary=:all:
 # FastAPI & Web Framework
 fastapi==0.104.1
 uvicorn==0.24.0
