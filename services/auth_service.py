@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from services.supabase_client import supabase
 from supabase_auth.errors import AuthApiError
 from postgrest.exceptions import APIError
+import requests
 
 class AuthService:
 
@@ -31,7 +32,8 @@ class AuthService:
                 "id": user_id,
                 "email": email,
                 "phone": phone,
-                "full_name": full_name
+                "full_name": full_name,
+                "notebook_id": None
             }).execute()
         except (APIError, AuthApiError) as e:
             # rollback user nếu tạo profile thất bại
@@ -42,11 +44,42 @@ class AuthService:
                 print(f"Rollback failed: {rollback_err}")
             raise HTTPException(status_code=400, detail="Failed to sign up. Email may already exist.")
 
+        # Step 3: Create notebook if notebook_id is null
+        profile = supabase.table("profiles") \
+            .select("notebook_id") \
+            .eq("id", user_id) \
+            .single() \
+            .execute() \
+            .data
+
+        if profile["notebook_id"] is None:
+            resp = requests.post(
+                "https://warnings-radius-considerations-exclusively.trycloudflare.com/api/notebooks",
+                headers={
+                    "accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "name": full_name or email,
+                    "description": ""
+                }
+            )
+
+            if resp.status_code != 200:
+                raise HTTPException(status_code=500, detail="Failed to create notebook")
+
+            notebook_id = resp.json()["id"]
+
+            supabase.table("profiles").update({
+                "notebook_id": notebook_id
+            }).eq("id", user_id).execute()
+
         return {
             "id": user_id,
             "email": email,
             "phone": phone,
-            "full_name": full_name
+            "full_name": full_name,
+            "notebook_id": notebook_id
         }
 
     @staticmethod
@@ -66,8 +99,20 @@ class AuthService:
         if res.user is None:
             raise HTTPException(status_code=400, detail="Login failed")
 
+        profile = supabase.table("profiles") \
+            .select("notebook_id") \
+            .eq("id", res.user.id) \
+            .single() \
+            .execute() \
+            .data
+
         return {
             "access_token": res.session.access_token,
             "refresh_token": res.session.refresh_token,
-            "user": res.user
+            "user": {
+                "id": res.user.id,
+                "email": res.user.email,
+                "notebook_id": profile["notebook_id"]
+            }
         }
+
