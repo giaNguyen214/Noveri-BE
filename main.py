@@ -30,6 +30,10 @@ app = FastAPI()
 
 load_dotenv()  # Load environment variables from .env file
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 
 app.add_middleware(
     CORSMiddleware,
